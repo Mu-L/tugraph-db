@@ -11,7 +11,7 @@ import {
   ZH_DOC_OPTIONS,
   ZH_TRANSLATIONS,
 } from "@site/src/constants";
-import { Cascader, Tooltip } from "antd";
+import { Cascader, Tooltip, ConfigProvider, theme } from "antd";
 
 type Props = WrapperProps<typeof DocSidebarType>;
 
@@ -52,32 +52,12 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     return { label: "4.5.1", value: "4.5.1" };
   };
 
-  const formatDocSearchVersion = (tag: string) => {
-    return tag.replace(
-      /docs-(\d+\.\d+\.\d+)|docs-latest_zh/g,
-      (match, version) => {
-        if (["3.5.1", "3.5.0"].includes(version)) {
-          return "docs-3-6-0";
-        }
-
-        if (["4.0.1", "4.1.0"].includes(version)) {
-          return "docs-4-1-0";
-        }
-
-        if (["4.5.1", "4.3.2", "4.3.1", "4.3.0", "4.2.0"].includes(version)) {
-          return "docs-4-5-1";
-        }
-
-        return `docs-${version.replace(/\./g, "-")}`;
-      }
-    );
-  };
 
   const onVersionChange = (values) => {
     const [type, version] = values;
     const lang = getCurrentLanguage();
     if (type === "TuGraph_Analytics") {
-      window.location.href = `https://tugraph-family.github.io/tugraph-analytics/${lang}/guide/`;
+      window.location.href = `https://geaflow.apache.org/docs/guide`;
       return;
     }
 
@@ -110,26 +90,6 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     const updatedLink = baseLink.replace(/\/\d+\.\d+\.\d+\//, `/${value}/`);
     return updatedLink;
   };
-
-  const getDocSearchKey = useMemo(() => {
-    const { value } = getCurrentVersion();
-
-    if (
-      ["4.1.0", "4.0.1", "4.0.0", "3.6.0", "3.5.1", "3.5.0"].includes(value)
-    ) {
-      return {
-        apiKey: "7d995257839cea75cceb969a6d96e40a",
-        indexName: "zhongyunwanio",
-        appId: "FHM90YCZ2Z",
-      };
-    }
-
-    return {
-      apiKey: "829a7e48ddbd6916e159c003391543a0",
-      indexName: "zhongyunwanio",
-      appId: "DGYVABHR0M",
-    };
-  }, [location.pathname]);
 
   const getTranslationsByLanguage = (lang: string) => {
     if (lang === "zh") {
@@ -197,79 +157,137 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   }, []);
 
   return (
-    <div
-      className="docsearch-wrapper"
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        flexDirection: "column",
+    <ConfigProvider
+      theme={{
+        algorithm: theme.darkAlgorithm,
+        token: {
+          colorBgElevated: 'rgba(30, 30, 35, 0.95)',
+          colorBgContainer: 'rgba(30, 30, 35, 0.95)',
+          colorBorder: 'rgba(255, 255, 255, 0.12)',
+          colorText: 'rgba(244, 244, 245, 0.96)',
+          colorTextSecondary: 'rgba(161, 161, 170, 0.92)',
+          colorPrimary: '#3b82f6',
+          borderRadius: 8,
+        },
+        components: {
+          Cascader: {
+            dropdownHeight: 'auto',
+            optionSelectedBg: 'rgba(59, 130, 246, 0.2)',
+            optionActiveBg: 'rgba(255, 255, 255, 0.05)',
+          },
+        },
       }}
     >
       <div
+        className="docsearch-wrapper"
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "8px",
+          justifyContent: "center",
+          flexDirection: "column",
         }}
       >
-        <Cascader
-          allowClear={false}
-          value={["TuGraph_DB", getCurrentVersion()?.label]}
-          options={getOptions(getCurrentLanguage())}
-          onChange={onVersionChange}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "8px",
+          }}
         >
-          <div className="itemWrapper">
-            <div className="titleBlock">
-              <span className="titleText">TuGraph DB</span>
-              <div className="downIcon" />
+          <Cascader
+            allowClear={false}
+            value={["TuGraph_DB", getCurrentVersion()?.label]}
+            options={getOptions(getCurrentLanguage())}
+            onChange={onVersionChange}
+          >
+            <div className="itemWrapper">
+              <div className="titleBlock">
+                <span className="titleText">TuGraph DB</span>
+                <div className="downIcon" />
+              </div>
+              <div className="contentArea">
+                <span id="engineDescription">
+                  {getDescByLanguage(getCurrentLanguage())}
+                </span>
+                <span className="versionLabel">
+                  V{getCurrentVersion()?.label}
+                </span>
+              </div>
             </div>
-            <div className="contentArea">
-              <span id="engineDescription">
-                {getDescByLanguage(getCurrentLanguage())}
-              </span>
-              <span className="versionLabel">
-                V{getCurrentVersion()?.label}
-              </span>
-            </div>
-          </div>
-        </Cascader>
+          </Cascader>
 
-        <Tooltip
-          title={getPlaceholderByLanguage(getCurrentLanguage())}
-          trigger={["hover", "click"]}
-        >
-          <div className="searchWrapper">
-            <DocSearch
-              {...{
-                ...getDocSearchKey,
-                searchParameters: {
-                  facetFilters: [
-                    formatDocSearchVersion(
-                      `docusaurus_tag:docs-${getCurrentVersion()?.value
-                      }_${getCurrentLanguage()}-current`
-                    ),
-                  ],
-                },
-                hitComponent: Hit,
-                transformItems: (items) => {
-                  return items.map((item) => {
-                    return {
-                      ...item,
-                      url: replaceVersionInLink(
-                        "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? ""
-                      ),
-                    };
-                  });
-                },
-                navigator: navigator,
-                translations: getTranslationsByLanguage(getCurrentLanguage()),
-                placeholder: getPlaceholderByLanguage(getCurrentLanguage()),
-              }}
-            />
-          </div>
-        </Tooltip>
+          <Tooltip
+            title={getPlaceholderByLanguage(getCurrentLanguage())}
+            trigger={["hover", "click"]}
+          >
+            <div className="searchWrapper">
+              <DocSearch
+                {...{
+                  apiKey: "315fd6a0c1acbdeecd5ba56d8062d00d",
+                  indexName: getCurrentLanguage() === 'en' ? 'tugraph_en' : "tugraph_zh",
+                  appId: "HO4M21RAQI",
+                  searchParameters: {
+                    facetFilters: [`version:${getCurrentVersion()?.value}`],
+                  },
+                  hitComponent: Hit,
+                  transformItems: (items) => {
+                    console.log('[DocSearch] Raw items from Algolia:', items);
+                    return items.map((item, index) => {
+                      // 确保 hierarchy 存在,否则 DocSearch 会报错
+                      if (!item.hierarchy) {
+                        console.error(`[DocSearch] Item ${index} missing hierarchy:`, {
+                          objectID: item.objectID,
+                          url: item.url,
+                          type: item.type,
+                          item: item
+                        });
+                        // 返回一个符合 DocSearch 结构的默认对象
+                        return {
+                          ...item,
+                          hierarchy: {
+                            lvl0: item.type || 'Documentation',
+                            lvl1: item.url?.split('/').pop() || 'Unknown',
+                            lvl2: null,
+                            lvl3: null,
+                            lvl4: null,
+                            lvl5: null,
+                            lvl6: null,
+                          },
+                          url: replaceVersionInLink(
+                            "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? ""
+                          ),
+                        };
+                      }
+
+                      // 确保 hierarchy 有所有必需的层级
+                      const hierarchy = {
+                        lvl0: item.hierarchy?.lvl0 || 'Documentation',
+                        lvl1: item.hierarchy?.lvl1 || 'Unknown',
+                        lvl2: item.hierarchy?.lvl2 || null,
+                        lvl3: item.hierarchy?.lvl3 || null,
+                        lvl4: item.hierarchy?.lvl4 || null,
+                        lvl5: item.hierarchy?.lvl5 || null,
+                        lvl6: item.hierarchy?.lvl6 || null,
+                      };
+
+                      return {
+                        ...item,
+                        hierarchy,
+                        url: replaceVersionInLink(
+                          "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? ""
+                        ),
+                      };
+                    });
+                  },
+                  navigator: navigator,
+                  translations: getTranslationsByLanguage(getCurrentLanguage()),
+                  placeholder: getPlaceholderByLanguage(getCurrentLanguage()),
+                }}
+              />
+            </div>
+          </Tooltip>
+        </div>
+        <DocSidebar {...props} />
       </div>
-      <DocSidebar {...props} />
-    </div>
+    </ConfigProvider>
   );
 }
